@@ -7,7 +7,7 @@ export const calculateFitnessMetrics = (profile) => {
 
   let bmiCategory = 'Normal Weight';
   if (bmi < 18.5) bmiCategory = 'Underweight';
-  else if (bmi >= 25 && bmi < 29.9) bmiCategory = 'Overweight';
+  else if (bmi >= 25 && bmi < 30) bmiCategory = 'Overweight';
   else if (bmi >= 30) bmiCategory = 'Obese';
 
   // 2. BMR Calculation (Mifflin-St Jeor Equation)
@@ -55,5 +55,62 @@ export const calculateFitnessMetrics = (profile) => {
     tdee,
     dailyCalories,
     dailyProtein,
+  };
+};
+
+export const calculateNutritionAndMetrics = (inputs) => {
+  const age = Number(inputs.age);
+  const height = Number(inputs.heightCm);
+  const weight = Number(inputs.weightKg);
+  const gender = {
+    male: 'Male',
+    female: 'Female',
+    other: 'Other',
+  }[String(inputs.gender).toLowerCase()];
+  const activityLevel = {
+    sedentary: 'Sedentary',
+    light: 'Lightly Active',
+    moderate: 'Moderately Active',
+    active: 'Very Active',
+    very_active: 'Very Active',
+  }[inputs.activityLevel];
+  const goal = {
+    weight_loss: 'Weight Loss',
+    muscle_gain: 'Muscle Gain',
+    strength_building: 'Strength',
+    general_fitness: 'General Fitness',
+  }[inputs.fitnessGoal];
+
+  if (
+    !Number.isFinite(age) ||
+    age < 13 ||
+    age > 100 ||
+    !Number.isFinite(height) ||
+    height < 100 ||
+    height > 250 ||
+    !Number.isFinite(weight) ||
+    weight < 30 ||
+    weight > 300 ||
+    !gender ||
+    !activityLevel ||
+    !goal
+  ) {
+    return null;
+  }
+
+  const metrics = calculateFitnessMetrics({
+    age,
+    gender,
+    height,
+    weight,
+    activityLevel,
+    goal,
+  });
+
+  return {
+    ...metrics,
+    proteinTargetGrams: metrics.dailyProtein,
+    carbsTargetGrams: Math.round((metrics.dailyCalories * 0.45) / 4),
+    fatTargetGrams: Math.round((metrics.dailyCalories * 0.25) / 9),
   };
 };

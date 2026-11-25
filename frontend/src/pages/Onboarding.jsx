@@ -76,8 +76,7 @@ export default function Onboarding() {
     setStep((prev) => prev + 1);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     setError('');
 
     if (!formData.dailyFoodBudget || Number(formData.dailyFoodBudget) <= 0) {
@@ -121,7 +120,7 @@ export default function Onboarding() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={(e) => e.preventDefault()}>
           {/* STEP 1: Body Metrics */}
           {step === 1 && (
             <div className="space-y-5">
@@ -397,7 +396,8 @@ export default function Onboarding() {
               </button>
             ) : (
               <button
-                type="submit"
+                type="button"
+                onClick={handleSubmit}
                 disabled={submitting}
                 className="px-6 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition disabled:opacity-50"
               >

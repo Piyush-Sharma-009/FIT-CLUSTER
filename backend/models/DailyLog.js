@@ -28,6 +28,7 @@ const dailyLogSchema = new mongoose.Schema(
         name: { type: String, required: true },
         calories: { type: Number, required: true },
         protein: { type: Number, required: true },
+        quantityGrams: { type: Number, default: null },
         cost: { type: Number, default: 0 }, // in INR
         loggedAt: { type: Date, default: Date.now },
       },

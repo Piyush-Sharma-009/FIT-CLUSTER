@@ -1,3 +1,5 @@
+import 'dotenv/config';
+
 // for mongodb connection work
 import dns from 'dns';
 dns.setServers(['8.8.8.8', '8.8.4.4']);
@@ -7,17 +9,18 @@ dns.setServers(['8.8.8.8', '8.8.4.4']);
 // 1. DEPENDENCIES & IMPORTS
 // ==========================================
 import express from 'express';
-import dotenv from 'dotenv';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
+import calculatorRoutes from './routes/calculatorRoutes.js';
+import workoutRoutes from './routes/workoutRoutes.js'
+import visionRoutes from './routes/visionRoutes.js';
 
 // ==========================================
 // 2. ENVIRONMENT & APP INITIALIZATION
 // ==========================================
-dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -37,6 +40,7 @@ app.use(express.json());
 
 // Parse URL-encoded payloads (form submissions)
 app.use(express.urlencoded({ extended: true }));
+
 
 // ==========================================
 // 4. DATABASE CONNECTION (MONGODB)
@@ -67,6 +71,21 @@ app.use('/api/users', userRoutes);
 
 //mounts the dashboard routes
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/calculator', calculatorRoutes);
+
+// mounts the ml routes\
+import mlRoutes from "./routes/mlRoutes.js";
+app.use("/api/ml", mlRoutes);
+
+//mounts workout routes
+app.use('/api/workouts', workoutRoutes);
+
+//food img processing 
+app.use('/api/vision', visionRoutes);
+
+import mealFeedbackRoutes from "./routes/mealFeedbackRoutes.js";
+app.use("/api/meals", mealFeedbackRoutes);
+
 
 // ==========================================
 // 6. GLOBAL ERROR HANDLING MIDDLEWARE
