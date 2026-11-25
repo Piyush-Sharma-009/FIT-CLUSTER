@@ -1,0 +1,15 @@
+fastapi==0.162.7
+uvicorn==0.54.0
+pydantic==2.14.3
+pulp==2.9.0
+joblib==1.6.0
+pandas==3.1.1
+numpy==2.5.4
+torch==2.15.0
+torchvision==0.29.2
+ultralytics==8.4.215
+opencv-python==5.1.0.95
+scikit-learn==1.9.1
+python-multipart==0.0.34
+Pillow==13.0.0
+PyYAML==6.0.4

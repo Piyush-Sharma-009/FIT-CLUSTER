@@ -34,6 +34,9 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
+        // Ensure today's adaptive WeeklyPlan exists before loading Dashboard.
+        // getDashboardData then overlays this exact plan onto today's DailyLog.
+        await API.get('/workouts/weekly');
         const { data } = await API.get('/dashboard');
         setTodayLog(data.todayLog);
         setAnalytics(data.analytics || []);
@@ -442,10 +445,17 @@ export default function Dashboard() {
                 {todayLog.meals.map((meal) => (
                   <div
                     key={meal._id}
-                    className="flex items-center justify-between text-xs py-1.5 px-2.5 rounded bg-neutral-900/60 border border-neutral-900 text-neutral-300"
+                    className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs py-1.5 px-2.5 rounded bg-neutral-900/60 border border-neutral-900 text-neutral-300"
                   >
-                    <span className="truncate max-w-[48%]">{meal.name}</span>
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2">
+                      <span className="break-words">{meal.name}</span>
+                      {meal.quantityGrams > 0 && (
+                        <strong className="shrink-0 text-amber-400">
+                          {meal.quantityGrams}g
+                        </strong>
+                      )}
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2.5">
                       <span className="text-neutral-400">
                         {meal.calories} kcal •{' '}
                         <strong className="text-red-400">{meal.protein}g</strong> • ₹

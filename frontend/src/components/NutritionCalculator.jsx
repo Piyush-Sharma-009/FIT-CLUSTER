@@ -1,10 +1,8 @@
 // Feature 3 — BMI, BMR, TDEE & Nutritional Calculator): Sends biometric inputs to /api/calculator/compute so users can calculate or simulate their BMI, Basal Metabolic Rate, Total Daily Energy Expenditure, and daily protein/carb/fat targets.
+import { useState } from 'react';
+import API from '../api/axios';
 
-
-import React, { useState } from 'react';
-import { apiRequest } from '../api/axios.js';
-
-export default function NutritionCalculator({ token, initialValues }) {
+export default function NutritionCalculator({ initialValues }) {
   const [inputs, setInputs] = useState({
     age: initialValues?.age || 28,
     gender: initialValues?.gender || 'male',
@@ -20,14 +18,10 @@ export default function NutritionCalculator({ token, initialValues }) {
     e.preventDefault();
     setError('');
     try {
-      const data = await apiRequest('/calculator/compute', {
-        method: 'POST',
-        body: inputs,
-        token,
-      });
+      const { data } = await API.post('/calculator/compute', inputs);
       setResults(data.results);
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || 'Unable to calculate nutrition targets.');
     }
   };
 

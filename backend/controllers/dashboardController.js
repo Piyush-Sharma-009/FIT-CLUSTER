@@ -1,12 +1,12 @@
 import DailyLog from '../models/DailyLog.js';
 import User from '../models/User.js';
+import WeeklyPlan from '../models/WeeklyPlan.js';
 import { calculateFitnessMetrics } from '../utils/fitnessCalculator.js';
+import { getCurrentWeekContext } from '../utils/weekHelper.js';
 import {
   generateTodaysWorkout,
   generateRecommendations,
 } from '../utils/planGenerator.js';
-
-const getTodayDateString = () => new Date().toISOString().split('T')[0];
 
 // @route   GET /api/dashboard
 export const getDashboardData = async (req, res, next) => {
@@ -17,12 +17,19 @@ export const getDashboardData = async (req, res, next) => {
       throw new Error('Complete onboarding first to access dashboard data');
     }
 
-    const today = getTodayDateString();
+    const {
+      weekStartDate,
+      todayIndex,
+      todayDate: today,
+    } = getCurrentWeekContext();
 
     // Find today's log or initialize a fresh one automatically
     let todayLog = await DailyLog.findOne({ user: user._id, date: today });
     if (!todayLog) {
-      const generatedPlan = generateTodaysWorkout(user.profile);
+      const generatedPlan = generateTodaysWorkout(
+        user.profile,
+        (todayIndex + 1) % 7
+      );
       todayLog = await DailyLog.create({
         user: user._id,
         date: today,
@@ -32,6 +39,29 @@ export const getDashboardData = async (req, res, next) => {
         totals: { caloriesConsumed: 0, proteinConsumed: 0, budgetSpent: 0 },
         loggedWeight: user.profile.weight,
       });
+    }
+
+    // The Dashboard must use the same generated/scheduled exercises as the
+    // Workout Plan. Overlay today's WeeklyPlan day onto the DailyLog so both
+    // pages stay consistent, while preserving meals and nutrition totals.
+    const weeklyPlan = await WeeklyPlan.findOne({
+      user: user._id,
+      weekStartDate,
+    });
+    const todayPlan = weeklyPlan?.days?.[todayIndex];
+
+    if (todayPlan) {
+      todayLog.workoutTitle = todayPlan.focus;
+      todayLog.exercises = todayPlan.exercises.map((exercise) => ({
+        name: exercise.name,
+        sets: `${exercise.sets} sets x ${exercise.reps}${
+          exercise.loggedWeightKg || exercise.recommendedWeightKg
+            ? ` @ ${exercise.loggedWeightKg ?? exercise.recommendedWeightKg}kg`
+            : ''
+        }`,
+        completed: exercise.completed,
+      }));
+      await todayLog.save();
     }
 
     // Fetch last 7 logs for progress & analytics chart
@@ -71,7 +101,8 @@ export const getDashboardData = async (req, res, next) => {
 // @route   PATCH /api/dashboard/workout/:exerciseId
 export const toggleExerciseCompletion = async (req, res, next) => {
   try {
-    const today = getTodayDateString();
+    const { weekStartDate, todayIndex, todayDate: today } =
+      getCurrentWeekContext();
     const log = await DailyLog.findOne({ user: req.user._id, date: today });
 
     if (!log) {
@@ -88,6 +119,30 @@ export const toggleExerciseCompletion = async (req, res, next) => {
     exercise.completed = !exercise.completed;
     await log.save();
 
+    // Mirror the Dashboard toggle back into today's WeeklyPlan entry.
+    const weeklyPlan = await WeeklyPlan.findOne({
+      user: req.user._id,
+      weekStartDate,
+    });
+    const todayPlan = weeklyPlan?.days?.[todayIndex];
+    if (todayPlan) {
+      const weeklyExercise = todayPlan.exercises.find(
+        (item) => item.name === exercise.name
+      );
+      if (weeklyExercise) {
+        weeklyExercise.completed = exercise.completed;
+        const allDone =
+          todayPlan.exercises.length > 0 &&
+          todayPlan.exercises.every((item) => item.completed);
+        todayPlan.status = allDone
+          ? 'completed'
+          : todayPlan.status === 'completed'
+            ? 'pending'
+            : todayPlan.status;
+        await weeklyPlan.save();
+      }
+    }
+
     res.status(200).json({ success: true, todayLog: log });
   } catch (error) {
     next(error);
@@ -103,7 +158,7 @@ export const logMeal = async (req, res, next) => {
       throw new Error('Meal name, calories, and protein are required');
     }
 
-    const today = getTodayDateString();
+    const { todayDate: today } = getCurrentWeekContext();
     const log = await DailyLog.findOne({ user: req.user._id, date: today });
 
     if (!log) {
@@ -146,7 +201,7 @@ export const logBodyWeight = async (req, res, next) => {
       throw new Error('Please provide a valid weight between 30 and 300 kg');
     }
 
-    const today = getTodayDateString();
+    const { todayDate: today } = getCurrentWeekContext();
 
     const todayLog = await DailyLog.findOneAndUpdate(
       { user: req.user._id, date: today },
@@ -196,7 +251,7 @@ export const logBodyWeight = async (req, res, next) => {
 // @route   DELETE /api/dashboard/meals/:mealId
 export const deleteMeal = async (req, res, next) => {
   try {
-    const today = getTodayDateString();
+    const { todayDate: today } = getCurrentWeekContext();
     const log = await DailyLog.findOne({ user: req.user._id, date: today });
 
     if (!log) {
